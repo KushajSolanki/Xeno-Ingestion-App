@@ -1,51 +1,59 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
-const { fetchShopifyProducts } = require("../services/shopify.service");
+const crypto = require("crypto");
+const axios = require("axios");
+const prisma = require("../../prisma/client");
 
-// POST /shopify/sync/products
-exports.syncProducts = async (req, res) => {
-  try {
-    const tenantId = req.tenantId;
+const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
+const SHOPIFY_SECRET = process.env.SHOPIFY_SECRET;
+const APP_URL = process.env.APP_URL; // https://xeno-ingestion-app.onrender.com
 
-    const shopUrl = process.env.SHOP_URL;
-    const token = process.env.SHOPIFY_API_TOKEN;
+exports.install = async (req, res) => {
+  const shop = req.query.shop;
+  if (!shop) return res.status(400).json({ error: "Missing shop parameter" });
 
-    if (!shopUrl || !token) {
-      return res.status(400).json({ message: "Shop URL or API token missing" });
+  const state = crypto.randomBytes(16).toString("hex");
+
+  const redirectUri = `${APP_URL}/shopify/callback`;
+
+  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=read_products,read_orders,read_customers&redirect_uri=${redirectUri}&state=${state}`;
+
+  res.json({ authUrl: installUrl });
+};
+
+exports.callback = async (req, res) => {
+  const { shop, code } = req.query;
+
+  const tokenRes = await axios.post(
+    `https://${shop}/admin/oauth/access_token`,
+    {
+      client_id: SHOPIFY_API_KEY,
+      client_secret: SHOPIFY_SECRET,
+      code,
     }
+  );
 
-    const products = await fetchShopifyProducts(shopUrl, token);
+  const accessToken = tokenRes.data.access_token;
 
-    for (const p of products) {
-      const firstVariant = p.variants && p.variants[0];
-      const price = firstVariant ? parseFloat(firstVariant.price || 0) : 0;
+  // Store in DB
+  const store = await prisma.store.upsert({
+    where: { shop },
+    create: { shop, accessToken },
+    update: { accessToken },
+  });
 
-      await prisma.product.upsert({
-        where: { shopifyId: String(p.id) },
-        update: {
-          title: p.title,
-          price,
-          tenantId,
-        },
-        create: {
-          tenantId,
-          shopifyId: String(p.id),
-          title: p.title,
-          price,
-        },
-      });
-    }
+  // Redirect frontend
+  res.redirect("http://localhost:5173/dashboard");
+};
 
-    res.json({
-      message: "Products synced successfully",
-      count: products.length,
-    });
-  } catch (err) {
-    console.error("Shopify Product Error:", {
-      status: err?.response?.status,
-      data: err?.response?.data,
-      message: err?.message,
-    });
-    res.status(500).json({ message: "Failed to sync products" });
-  }
+exports.summary = async (req, res) => {
+  const tenantId = req.tenantId;
+
+  const products = await prisma.product.count({ where: { tenantId } });
+  const orders = await prisma.order.count({ where: { tenantId } });
+  const customers = await prisma.customer.count({ where: { tenantId } });
+
+  res.json({
+    products,
+    orders,
+    customers,
+  });
 };
