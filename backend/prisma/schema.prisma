@@ -26,9 +26,9 @@ model Customer {
   id          Int      @id @default(autoincrement())
   tenantId    Int
   shopifyId   String   @unique
+  email       String?
   firstName   String?
   lastName    String?
-  email       String?
   phone       String?
   createdAt   DateTime @default(now())
 
@@ -52,8 +52,8 @@ model Order {
   id           Int         @id @default(autoincrement())
   tenantId     Int
   shopifyId    String      @unique
-  totalAmount  Float
-  date         DateTime
+  totalPrice   Float       // matches Shopify "total_price"
+  createdAt    DateTime    // matches Shopify "created_at"
 
   tenant       Tenant      @relation(fields: [tenantId], references: [id])
   items        OrderItem[]
@@ -64,13 +64,15 @@ model Order {
 model OrderItem {
   id        Int     @id @default(autoincrement())
   orderId   Int
-  productId Int
+  productId Int?
+  title     String?
   quantity  Int
   price     Float
 
   order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
 }
+
 
 model Event {
   id        Int      @id @default(autoincrement())
