@@ -28,8 +28,26 @@ async function fetchShopifyCustomers(shopUrl, accessToken) {
   return res.data.customers || [];
 }
 
+async function fetchShopifyOrders(shopUrl, accessToken) {
+  const apiVersion = "2025-10";
+  const url = `https://${shopUrl}/admin/api/${apiVersion}/orders.json?status=any&limit=250`;
+
+  const res = await axios.get(url, {
+    headers: {
+      "X-Shopify-Access-Token": accessToken,
+      "Content-Type": "application/json",
+    },
+  });
+
+  return res.data.orders || [];
+}
+
+
 
 module.exports = {
   fetchShopifyProducts,
+  fetchShopifyCustomers,
+  fetchShopifyOrders
 };
+
 
