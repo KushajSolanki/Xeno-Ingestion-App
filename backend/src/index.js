@@ -6,9 +6,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// REGISTER ROUTES FIRST
+// Routes
 const authRoutes = require("./routes/auth.routes");
+const shopifyRoutes = require("./routes/shopify.routes");
+
 app.use("/auth", authRoutes);
+app.use("/shopify", shopifyRoutes);
 
 app.get("/", (req, res) => {
   res.send("Xeno Backend Running");
