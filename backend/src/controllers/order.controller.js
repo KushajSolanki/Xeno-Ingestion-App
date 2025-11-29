@@ -138,3 +138,34 @@ exports.getOrderTrend = async (req, res) => {
   }
 };
 
+// GET /orders/revenue
+exports.getRevenueTrend = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    const orders = await prisma.order.findMany({
+      where: { tenantId },
+      orderBy: { date: "asc" },
+    });
+
+    const trend = {};
+
+    for (const o of orders) {
+      const day = o.date.toLocaleDateString("en-US", { weekday: "short" });
+
+      if (!trend[day]) trend[day] = 0;
+      trend[day] += Number(o.totalAmount) || 0;
+    }
+
+    const data = Object.keys(trend).map((day) => ({
+      date: day,
+      revenue: trend[day],
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error("Revenue trend error:", err);
+    res.status(500).json({ message: "Failed to fetch revenue trend" });
+  }
+};
+
