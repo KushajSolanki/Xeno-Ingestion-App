@@ -8,6 +8,7 @@ router.get("/install", shopifyController.install);
 router.get("/callback", shopifyController.callback);
 
 router.get("/summary", authMiddleware, shopifyController.summary);
-router.post("/sync/products", authMiddleware, shopifyController.syncProducts);
+
 
 module.exports = router;
+
