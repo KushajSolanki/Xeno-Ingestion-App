@@ -16,8 +16,8 @@ exports.syncProducts = async (req, res) => {
       return res.status(404).json({ message: "Tenant not found" });
     }
 
-    const shopUrl = tenant.shopUrl || process.env.SHOP_URL;
-    const token = tenant.apiToken || process.env.SHOPIFY_API_TOKEN;
+    const shopUrl = process.env.SHOP_URL;
+    const token = process.env.SHOPIFY_API_TOKEN;
 
     if (!shopUrl || !token) {
       return res.status(400).json({
@@ -62,4 +62,5 @@ exports.syncProducts = async (req, res) => {
 
   }
 };
+
 
