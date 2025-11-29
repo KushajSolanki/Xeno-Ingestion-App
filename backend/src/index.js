@@ -3,7 +3,14 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://xeno-ingestion-app.onrender.com"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Routes
@@ -11,8 +18,6 @@ const authRoutes = require("./routes/auth.routes");
 const shopifyRoutes = require("./routes/shopify.routes");
 const customerRoutes = require("./routes/customer.routes");
 const orderRoutes = require("./routes/order.routes");
-
-
 
 app.use("/auth", authRoutes);
 app.use("/shopify", shopifyRoutes);
