@@ -9,21 +9,34 @@ const APP_URL = process.env.APP_URL; // example: https://xeno-ingestion-app.onre
 
 exports.install = async (req, res) => {
   try {
-    const shop = req.query.shop;
-    if (!shop) return res.status(400).json({ error: "Missing shop parameter" });
+    const shop = req.query.shop;  // must already be FULL domain
+
+    if (!shop || !shop.endsWith(".myshopify.com")) {
+      return res.status(400).json({ error: "Invalid shop domain. Use full myshopify.com domain." });
+    }
 
     const state = crypto.randomBytes(16).toString("hex");
 
-    const redirectUri = `${APP_URL}/shopify/callback`;
+    const redirectUri = `${APP_URL}/shopify/callback`; 
+    // example: https://xeno-ingestion-app.onrender.com/shopify/callback
 
-    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=read_products,read_orders,read_customers&redirect_uri=${redirectUri}&state=${state}`;
+    const installUrl =
+      `https://${shop}/admin/oauth/authorize` +
+      `?client_id=${SHOPIFY_API_KEY}` +
+      `&scope=read_products,read_orders,read_customers` +
+      `&redirect_uri=${redirectUri}` +
+      `&state=${state}`;
+
+    console.log("Generated Shopify OAuth URL:", installUrl);
 
     return res.json({ authUrl: installUrl });
+
   } catch (err) {
     console.error("Install error:", err);
     res.status(500).json({ error: "OAuth install failed" });
   }
 };
+
 
 exports.callback = async (req, res) => {
   try {
@@ -74,3 +87,4 @@ exports.summary = async (req, res) => {
     res.status(500).json({ error: "Failed to load dashboard summary" });
   }
 };
+
