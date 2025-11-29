@@ -54,7 +54,12 @@ exports.syncProducts = async (req, res) => {
       count: products.length,
     });
   } catch (err) {
-    console.error("Error syncing products:", err?.response?.data || err.message);
-    res.status(500).json({ message: "Failed to sync products" });
+    console.error("Shopify Error:", {
+  status: err?.response?.status,
+  data: err?.response?.data,
+  message: err?.message
+});
+
   }
 };
+
