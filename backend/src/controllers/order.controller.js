@@ -100,3 +100,41 @@ exports.syncOrders = async (req, res) => {
     res.status(500).json({ message: "Failed to sync orders" });
   }
 };
+
+
+// GET /orders/trend
+exports.getOrderTrend = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    // fetch orders for this tenant
+    const orders = await prisma.order.findMany({
+      where: { tenantId },
+      orderBy: { date: "asc" },
+    });
+
+    // group by weekday
+    const trend = {};
+
+    for (const o of orders) {
+      const day = o.date.toLocaleDateString("en-US", {
+        weekday: "short",
+      });
+
+      if (!trend[day]) trend[day] = 0;
+      trend[day]++;
+    }
+
+    // convert to array response
+    const data = Object.keys(trend).map((day) => ({
+      date: day,
+      orders: trend[day],
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error("Order trend error:", err);
+    res.status(500).json({ message: "Failed to fetch order trend" });
+  }
+};
+
