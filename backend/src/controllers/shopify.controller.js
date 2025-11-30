@@ -213,6 +213,29 @@ exports.getSummary = async (req, res) => {
 };
 
 
+exports.getOrdersTrend = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    const data = await prisma.order.groupBy({
+      by: ["createdAt"],
+      where: { tenantId },
+      _count: { id: true },
+      orderBy: { createdAt: "asc" }
+    });
+
+    const formatted = data.map(d => ({
+      date: d.createdAt.toISOString().split("T")[0],
+      orders: d._count.id
+    }));
+
+    res.json(formatted);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 
 
