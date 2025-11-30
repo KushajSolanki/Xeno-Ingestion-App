@@ -94,12 +94,12 @@ app.get("/reset-migrations-table", async (req, res) => {
   }
 });
 
-app.get("/fix-migration-table-v2", async (req, res) => {
+app.get("/fix-migration-table-final", async (req, res) => {
   try {
-    // Drop old table
+    // Delete old/broken migration table
     await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "_prisma_migrations";`);
 
-    // Create Prisma 5 compatible migration table
+    // Create correct Prisma 5 migration table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE "_prisma_migrations" (
         id TEXT PRIMARY KEY,
@@ -110,11 +110,12 @@ app.get("/fix-migration-table-v2", async (req, res) => {
         rolled_back_at TIMESTAMP,
         finished_at TIMESTAMP,
         applied_at TIMESTAMP,
+        started_at TIMESTAMP,
         applied_steps_count INTEGER NOT NULL DEFAULT 0
       );
     `);
 
-    // Insert baseline as applied
+    // Insert baseline migration as applied
     await prisma.$executeRawUnsafe(`
       INSERT INTO "_prisma_migrations" (
         id,
@@ -125,24 +126,26 @@ app.get("/fix-migration-table-v2", async (req, res) => {
         rolled_back_at,
         finished_at,
         applied_at,
+        started_at,
         applied_steps_count
       ) VALUES (
         gen_random_uuid(),
         '',
         '000_init_baseline',
-        '',
+        'Baseline migration',
         '',
         NULL,
+        NOW(),
         NOW(),
         NOW(),
         1
       );
     `);
 
-    res.send("Prisma migrations table upgraded and baseline applied.");
+    res.send("Final Prisma migrations table created and baseline applied.");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error fixing migration table v2.");
+    res.status(500).send("Error fixing migration table (final).");
   }
 });
 
