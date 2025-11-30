@@ -126,3 +126,11 @@ exports.syncAll = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+exports.getSummary = (req, res) => {
+  res.json({
+    message: "Summary endpoint coming soon 🚀",
+  });
+};
+
