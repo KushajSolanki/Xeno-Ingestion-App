@@ -194,6 +194,7 @@ exports.syncOrders = async (req, res) => {
         update: {
           tenantId,
           totalPrice: parseFloat(o.total_price || "0"),
+          totalAmount: parseFloat(o.total_price || "0"),   // <-- REQUIRED FIX
           createdAt: new Date(o.created_at),
           customerId,
         },
@@ -201,10 +202,12 @@ exports.syncOrders = async (req, res) => {
           tenantId,
           shopifyId: String(o.id),
           totalPrice: parseFloat(o.total_price || "0"),
+          totalAmount: parseFloat(o.total_price || "0"),   // <-- REQUIRED FIX
           createdAt: new Date(o.created_at),
           customerId,
         },
       });
+
 
 
       // reset items
@@ -248,6 +251,7 @@ exports.syncAll = async (req, res) => {
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
+
 
 
 
