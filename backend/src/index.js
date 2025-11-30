@@ -20,10 +20,11 @@ app.use(express.json());
 
 app.get("/fix-order-table", async (req, res) => {
   try {
-    await prisma.$executeRawUnsafe(`
-      DROP TABLE IF EXISTS "OrderItem";
-      DROP TABLE IF EXISTS "Order";
-    `);
+    // Drop child table FIRST (because of FK)
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "OrderItem"`);
+
+    // Drop parent table
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Order"`);
 
     res.send("Order and OrderItem tables dropped.");
   } catch (err) {
@@ -31,6 +32,7 @@ app.get("/fix-order-table", async (req, res) => {
     res.status(500).send("Error");
   }
 });
+
 
 
 
