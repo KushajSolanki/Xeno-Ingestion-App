@@ -1,15 +1,53 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-exports.getSummary = async (req, res) => {
-  try {
-    const products = await prisma.product.count();
-    const orders = await prisma.order.count();
-    const customers = await prisma.customer.count();
+const {
+  fetchShopifyProducts,
+  fetchShopifyCustomers,
+  fetchShopifyOrders,
+} = require("../services/shopify.service");
 
-    res.json({ products, orders, customers });
+// GET /shopify/products
+exports.getProducts = async (req, res) => {
+  try {
+    const tenantId = req.tenantId; // from auth middleware
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    const products = await fetchShopifyProducts(tenant.shopUrl, tenant.apiToken);
+    res.json(products);
   } catch (err) {
-    console.error("Summary error:", err);
-    res.status(500).json({ message: "Failed to load summary" });
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /shopify/customers
+exports.getCustomers = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    const customers = await fetchShopifyCustomers(tenant.shopUrl, tenant.apiToken);
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /shopify/orders
+exports.getOrders = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    const orders = await fetchShopifyOrders(tenant.shopUrl, tenant.apiToken);
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
