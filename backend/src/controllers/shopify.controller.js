@@ -206,6 +206,7 @@ exports.syncOrders = async (req, res) => {
         },
       });
 
+
       // reset items
       await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
 
@@ -247,6 +248,7 @@ exports.syncAll = async (req, res) => {
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
+
 
 
 
