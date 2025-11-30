@@ -2,6 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { fetchShopifyProducts, fetchShopifyCustomers, fetchShopifyOrders } = require("../services/shopify.service");
 
+
 exports.getProducts = async (req, res) => {
   try {
     const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
@@ -80,45 +81,94 @@ exports.syncCustomers = async (req, res) => {
 // Sync Orders
 exports.syncOrders = async (req, res) => {
   try {
-    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
-    const orders = await fetchShopifyOrders(tenant.shopUrl, tenant.apiToken);
+    // ✅ Ensure tenantId comes from auth middleware
+    const tenantId = req.tenantId;
+    if (!tenantId) return res.status(400).json({ message: "Tenant not identified" });
 
-    for (const o of orders) {
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    const shopifyOrders = await fetchShopifyOrders(tenant.shopUrl, tenant.apiToken);
+    console.log("Fetched orders from Shopify:", shopifyOrders.length);
+
+    for (const o of shopifyOrders) {
+      // -------------------------
+      // Upsert customer if present
+      // -------------------------
+      let customerId = null;
+      if (o.customer) {
+        const customer = await prisma.customer.upsert({
+          where: { shopifyId: String(o.customer.id) },
+          update: {
+            tenantId,
+            email: o.customer.email,
+            firstName: o.customer.first_name,
+            lastName: o.customer.last_name,
+            phone: o.customer.phone,
+          },
+          create: {
+            tenantId,
+            shopifyId: String(o.customer.id),
+            email: o.customer.email,
+            firstName: o.customer.first_name,
+            lastName: o.customer.last_name,
+            phone: o.customer.phone,
+          },
+        });
+        customerId = customer.id;
+      }
+
+      // -------------------------
+      // Upsert order
+      // -------------------------
       const order = await prisma.order.upsert({
         where: { shopifyId: String(o.id) },
         update: {
           totalPrice: parseFloat(o.total_price || "0"),
           tenantId,
-          createdAt: new Date(o.created_at), // add this if you want to update date
+          createdAt: new Date(o.created_at),
+          customerId,
         },
         create: {
           tenantId,
           shopifyId: String(o.id),
           totalPrice: parseFloat(o.total_price || "0"),
-          createdAt: new Date(o.created_at), // MUST be here
+          createdAt: new Date(o.created_at),
           customerId,
         },
       });
 
+      // -------------------------
+      // Reset order items
+      // -------------------------
       await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
 
       for (const item of o.line_items || []) {
+        let productId = null;
+
+        if (item.product_id) {
+          const product = await prisma.product.findUnique({
+            where: { shopifyId: String(item.product_id) },
+          });
+          if (product) productId = product.id;
+        }
+
         await prisma.orderItem.create({
           data: {
             orderId: order.id,
             title: item.title,
             quantity: item.quantity,
-            price: Number(item.price),
-            productId: null,
+            price: parseFloat(item.price || "0"),
+            productId, // ✅ only sets if product exists
           },
         });
       }
     }
 
-    res.json({ message: "Orders synced", count: orders.length });
-
+    res.json({ message: "Orders synced", count: shopifyOrders.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("syncOrders error:", err);
+    res.status(500).json({ message: "Failed to sync orders", error: err.message });
   }
 };
 
@@ -143,5 +193,6 @@ exports.getSummary = (req, res) => {
     message: "Summary endpoint coming soon 🚀",
   });
 };
+
 
 
