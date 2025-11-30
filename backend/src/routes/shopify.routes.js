@@ -9,6 +9,8 @@ router.get("/customers", auth, shopifyController.getCustomers);
 router.get("/orders", auth, shopifyController.getOrders);
 router.get("/summary", auth, shopifyController.getSummary);
 router.get("/orders/trend", auth, shopifyController.getOrdersTrend);
+router.get("/customers/top", auth, shopifyController.getTopCustomers);
+
 
 // Sync routes
 router.post("/sync/products", auth, shopifyController.syncProducts);
@@ -17,5 +19,6 @@ router.post("/sync/orders", auth, shopifyController.syncOrders);
 router.post("/sync/all", auth, shopifyController.syncAll);
 
 module.exports = router;
+
 
 
