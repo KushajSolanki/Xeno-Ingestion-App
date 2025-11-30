@@ -34,6 +34,23 @@ app.get("/fix-order-table", async (req, res) => {
 });
 
 
+app.get("/fix-migration", async (req, res) => {
+  try {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "_prisma_migrations" 
+      (migration_name, started_at, applied_at, checksum, logs, rolled_back_at, finished_at)
+      VALUES 
+      ('000_init_baseline', NOW(), NOW(), '', '', NULL, NOW());
+    `);
+
+    res.send("Baseline migration marked as applied.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error marking migration.");
+  }
+});
+
+
 
 
 // Route Imports
