@@ -51,6 +51,20 @@ app.get("/fix-migration", async (req, res) => {
 });
 
 
+app.get("/drop-order-tables", async (req, res) => {
+  try {
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "OrderItem" CASCADE;`);
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Order" CASCADE;`);
+
+    res.send("Order and OrderItem tables DROPPED.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error dropping tables.");
+  }
+});
+
+
+
 
 app.get("/reset-migrations-table", async (req, res) => {
   try {
