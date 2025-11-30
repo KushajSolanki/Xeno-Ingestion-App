@@ -62,16 +62,20 @@ model Order {
 }
 
 model OrderItem {
-  id        Int       @id @default(autoincrement())
-  orderId   Int
-  productId Int?
-  title     String?
+  id        Int     @id @default(autoincrement())
+  title     String
   quantity  Int
-  price     Float
+  price     Int
 
-  order     Order     @relation(fields: [orderId], references: [id])
-  product   Product?  @relation(fields: [productId], references: [id])
+  orderId   Int
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
 }
+
 
 model Event {
   id        Int       @id @default(autoincrement())
