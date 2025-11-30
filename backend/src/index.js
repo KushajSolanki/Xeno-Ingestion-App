@@ -94,58 +94,62 @@ app.get("/reset-migrations-table", async (req, res) => {
   }
 });
 
-app.get("/fix-migration-table-final", async (req, res) => {
+app.get("/create-order-tables", async (req, res) => {
   try {
-    // Delete old/broken migration table
-    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "_prisma_migrations";`);
-
-    // Create correct Prisma 5 migration table
+    // Create Order table
     await prisma.$executeRawUnsafe(`
-      CREATE TABLE "_prisma_migrations" (
-        id TEXT PRIMARY KEY,
-        checksum TEXT NOT NULL,
-        migration_name TEXT NOT NULL,
-        description TEXT,
-        logs TEXT,
-        rolled_back_at TIMESTAMP,
-        finished_at TIMESTAMP,
-        applied_at TIMESTAMP,
-        started_at TIMESTAMP,
-        applied_steps_count INTEGER NOT NULL DEFAULT 0
+      CREATE TABLE IF NOT EXISTS "Order" (
+        id SERIAL PRIMARY KEY,
+        tenantId INTEGER NOT NULL,
+        shopifyId TEXT NOT NULL UNIQUE,
+        totalPrice DOUBLE PRECISION NOT NULL,
+        createdAt TIMESTAMP NOT NULL,
+        customerId INTEGER
       );
     `);
 
-    // Insert baseline migration as applied
+    // Create OrderItem table
     await prisma.$executeRawUnsafe(`
-      INSERT INTO "_prisma_migrations" (
-        id,
-        checksum,
-        migration_name,
-        description,
-        logs,
-        rolled_back_at,
-        finished_at,
-        applied_at,
-        started_at,
-        applied_steps_count
-      ) VALUES (
-        gen_random_uuid(),
-        '',
-        '000_init_baseline',
-        'Baseline migration',
-        '',
-        NULL,
-        NOW(),
-        NOW(),
-        NOW(),
-        1
+      CREATE TABLE IF NOT EXISTS "OrderItem" (
+        id SERIAL PRIMARY KEY,
+        orderId INTEGER NOT NULL,
+        productId INTEGER,
+        title TEXT,
+        quantity INTEGER NOT NULL,
+        price DOUBLE PRECISION NOT NULL
       );
     `);
 
-    res.send("Final Prisma migrations table created and baseline applied.");
+    // Add foreign keys manually
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Order"
+        ADD CONSTRAINT "Order_tenantId_fkey"
+        FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "Order"
+        ADD CONSTRAINT "Order_customerId_fkey"
+        FOREIGN KEY ("customerId") REFERENCES "Customer"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "OrderItem"
+        ADD CONSTRAINT "OrderItem_orderId_fkey"
+        FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "OrderItem"
+        ADD CONSTRAINT "OrderItem_productId_fkey"
+        FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    `);
+
+    res.send("Order + OrderItem tables created successfully.");
+
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error fixing migration table (final).");
+    res.status(500).send("Error creating tables.");
   }
 });
 
