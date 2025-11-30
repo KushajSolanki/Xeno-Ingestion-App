@@ -10,7 +10,7 @@ const {
 // GET /shopify/products
 exports.getProducts = async (req, res) => {
   try {
-    const tenantId = req.tenantId; // from auth middleware
+    const tenantId = req.tenantId;
 
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
@@ -68,6 +68,7 @@ exports.getSummary = async (req, res) => {
   }
 };
 
+// SYNC PRODUCTS
 exports.syncProducts = async (req, res) => {
   try {
     const tenantId = req.tenantId;
@@ -75,10 +76,7 @@ exports.syncProducts = async (req, res) => {
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    const shopifyProducts = await fetchShopifyProducts(
-      tenant.shopUrl,
-      tenant.apiToken
-    );
+    const shopifyProducts = await fetchShopifyProducts(tenant.shopUrl, tenant.apiToken);
 
     await Promise.all(
       shopifyProducts.map((p) =>
@@ -106,7 +104,7 @@ exports.syncProducts = async (req, res) => {
   }
 };
 
-// POST /shopify/sync/customers
+// SYNC CUSTOMERS
 exports.syncCustomers = async (req, res) => {
   try {
     const tenantId = req.tenantId;
@@ -114,10 +112,7 @@ exports.syncCustomers = async (req, res) => {
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    const shopifyCustomers = await fetchShopifyCustomers(
-      tenant.shopUrl,
-      tenant.apiToken
-    );
+    const shopifyCustomers = await fetchShopifyCustomers(tenant.shopUrl, tenant.apiToken);
 
     await Promise.all(
       shopifyCustomers.map((c) =>
@@ -149,7 +144,7 @@ exports.syncCustomers = async (req, res) => {
   }
 };
 
-// POST /shopify/sync/orders
+// SYNC ORDERS
 exports.syncOrders = async (req, res) => {
   try {
     const tenantId = req.tenantId;
@@ -157,16 +152,13 @@ exports.syncOrders = async (req, res) => {
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    const shopifyOrders = await fetchShopifyOrders(
-      tenant.shopUrl,
-      tenant.apiToken
-    );
+    const shopifyOrders = await fetchShopifyOrders(tenant.shopUrl, tenant.apiToken);
 
     console.log("Fetched orders from Shopify:", shopifyOrders.length);
 
     for (const o of shopifyOrders) {
-      // upsert customer if present
       let customerId = null;
+
       if (o.customer) {
         const customer = await prisma.customer.upsert({
           where: { shopifyId: String(o.customer.id) },
@@ -186,10 +178,10 @@ exports.syncOrders = async (req, res) => {
             phone: o.customer.phone,
           },
         });
+
         customerId = customer.id;
       }
 
-      // upsert order
       const order = await prisma.order.upsert({
         where: { shopifyId: String(o.id) },
         update: {
@@ -207,7 +199,6 @@ exports.syncOrders = async (req, res) => {
         },
       });
 
-      // reset items
       await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
 
       for (const item of o.line_items || []) {
@@ -217,12 +208,8 @@ exports.syncOrders = async (req, res) => {
             title: item.title,
             quantity: item.quantity,
             price: parseFloat(item.price || "0"),
-            product: item.product_id
-              ? {
-                  connect: { shopifyId: String(item.product_id) },
-                }
-              : undefined,
-          },
+            productId: item.product_id ? Number(item.product_id) : null
+          }
         });
       }
     }
@@ -234,23 +221,14 @@ exports.syncOrders = async (req, res) => {
   }
 };
 
-
-// POST /shopify/sync/all
+// SYNC EVERYTHING
 exports.syncAll = async (req, res) => {
   try {
     await exports.syncProducts(req, res);
     await exports.syncCustomers(req, res);
     await exports.syncOrders(req, res);
-
-    // last handler will send response, so no extra res.json here
   } catch (err) {
     console.error("syncAll error:", err);
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
-
-
-
-
-
-
