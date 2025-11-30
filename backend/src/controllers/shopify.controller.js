@@ -187,12 +187,32 @@ exports.syncAll = async (req, res) => {
   }
 };
 
+exports.getSummary = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
 
-exports.getSummary = (req, res) => {
-  res.json({
-    message: "Summary endpoint coming soon 🚀",
-  });
+    const [products, customers, orders, revenue] = await Promise.all([
+      prisma.product.count({ where: { tenantId } }),
+      prisma.customer.count({ where: { tenantId } }),
+      prisma.order.count({ where: { tenantId } }),
+      prisma.order.aggregate({
+        where: { tenantId },
+        _sum: { totalPrice: true }
+      })
+    ]);
+
+    res.json({
+      products,
+      customers,
+      orders,
+      revenue: revenue._sum.totalPrice || 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
+
+
 
 
 
