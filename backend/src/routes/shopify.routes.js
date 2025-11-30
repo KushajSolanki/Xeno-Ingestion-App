@@ -1,12 +1,16 @@
 const express = require("express");
+const {
+  getProducts,
+  getOrders,
+  getCustomers,
+  getSummary,
+} = require("../controllers/shopify.controller");
+
 const router = express.Router();
-const shopifyController = require("../controllers/shopify.controller");
-const authMiddleware = require("../middleware/auth.middleware");
 
-// Dashboard summary (uses DB)
-router.get("/summary", authMiddleware, shopifyController.summary);
-
-// (optional) product sync if you have it later
-// router.post("/sync/products", authMiddleware, shopifyController.syncProducts);
+router.get("/products", getProducts);
+router.get("/orders", getOrders);
+router.get("/customers", getCustomers);
+router.get("/summary", getSummary);
 
 module.exports = router;
