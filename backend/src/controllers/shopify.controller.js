@@ -189,12 +189,12 @@ exports.syncOrders = async (req, res) => {
         customerId = customer.id;
       }
 
+      // upsert order
       const order = await prisma.order.upsert({
         where: { shopifyId: String(o.id) },
         update: {
           tenantId,
           totalPrice: parseFloat(o.total_price || "0"),
-          totalAmount: parseFloat(o.total_price || "0"),   // <-- REQUIRED FIX
           createdAt: new Date(o.created_at),
           customerId,
         },
@@ -202,13 +202,10 @@ exports.syncOrders = async (req, res) => {
           tenantId,
           shopifyId: String(o.id),
           totalPrice: parseFloat(o.total_price || "0"),
-          totalAmount: parseFloat(o.total_price || "0"),   // <-- REQUIRED FIX
           createdAt: new Date(o.created_at),
           customerId,
         },
       });
-
-
 
       // reset items
       await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
@@ -251,6 +248,7 @@ exports.syncAll = async (req, res) => {
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
+
 
 
 
