@@ -162,75 +162,69 @@ exports.syncOrders = async (req, res) => {
       tenant.apiToken
     );
 
-    await Promise.all(
-      shopifyOrders.map(async (o) => {
-        // upsert customer (if present)
-        let customerId = null;
-        if (o.customer) {
-          const customer = await prisma.customer.upsert({
-            where: { shopifyId: String(o.customer.id) },
-            update: {
-              tenantId,
-              email: o.customer.email,
-              firstName: o.customer.first_name,
-              lastName: o.customer.last_name,
-              phone: o.customer.phone,
-            },
-            create: {
-              tenantId,
-              shopifyId: String(o.customer.id),
-              email: o.customer.email,
-              firstName: o.customer.first_name,
-              lastName: o.customer.last_name,
-              phone: o.customer.phone,
-            },
-          });
-          customerId = customer.id;
-        }
+    console.log("Fetched orders from Shopify:", shopifyOrders.length);
 
-        // upsert order
-        const order = await prisma.order.upsert({
-          where: { shopifyId: String(o.id) },
+    for (const o of shopifyOrders) {
+      // upsert customer if present
+      let customerId = null;
+      if (o.customer) {
+        const customer = await prisma.customer.upsert({
+          where: { shopifyId: String(o.customer.id) },
           update: {
             tenantId,
-            totalPrice: parseFloat(o.total_price || "0"),
-            createdAt: new Date(o.created_at),
-            customerId,
+            email: o.customer.email,
+            firstName: o.customer.first_name,
+            lastName: o.customer.last_name,
+            phone: o.customer.phone,
           },
           create: {
             tenantId,
-            shopifyId: String(o.id),
-            totalPrice: parseFloat(o.total_price || "0"),
-            createdAt: new Date(o.created_at),
-            customerId,
+            shopifyId: String(o.customer.id),
+            email: o.customer.email,
+            firstName: o.customer.first_name,
+            lastName: o.customer.last_name,
+            phone: o.customer.phone,
           },
         });
+        customerId = customer.id;
+      }
 
-        // clear existing items then recreate
-        await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
+      const order = await prisma.order.upsert({
+        where: { shopifyId: String(o.id) },
+        update: {
+          tenantId,
+          totalPrice: parseFloat(o.total_price || "0"),
+          createdAt: new Date(o.created_at),
+          customerId,
+        },
+        create: {
+          tenantId,
+          shopifyId: String(o.id),
+          totalPrice: parseFloat(o.total_price || "0"),
+          createdAt: new Date(o.created_at),
+          customerId,
+        },
+      });
 
-        await Promise.all(
-          (o.line_items || []).map((item) =>
-            prisma.orderItem.create({
-              data: {
-                orderId: order.id,
-                title: item.title,
-                quantity: item.quantity,
-                price: parseFloat(item.price || "0"),
-                // link to product if already synced
-                product: item.product_id
-                  ? {
-                      connect: {
-                        shopifyId: String(item.product_id),
-                      },
-                    }
-                  : undefined,
-              },
-            })
-          )
-        );
-      })
-    );
+      // reset items
+      await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
+
+      for (const item of o.line_items || []) {
+        await prisma.orderItem.create({
+          data: {
+            orderId: order.id,
+            title: item.title,
+            quantity: item.quantity,
+            price: parseFloat(item.price || "0"),
+            product: item.product_id
+              ? {
+                  connect: { shopifyId: String(item.product_id) },
+                }
+              : undefined,
+          },
+        });
+      }
+    }
 
     res.json({ message: "Orders synced", count: shopifyOrders.length });
   } catch (err) {
@@ -238,6 +232,7 @@ exports.syncOrders = async (req, res) => {
     res.status(500).json({ message: "Failed to sync orders" });
   }
 };
+
 
 // POST /shopify/sync/all
 exports.syncAll = async (req, res) => {
@@ -252,5 +247,6 @@ exports.syncAll = async (req, res) => {
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
+
 
 
