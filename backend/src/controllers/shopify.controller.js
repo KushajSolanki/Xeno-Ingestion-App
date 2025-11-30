@@ -242,14 +242,15 @@ exports.syncOrders = async (req, res) => {
 // POST /shopify/sync/all
 exports.syncAll = async (req, res) => {
   try {
-    // run sequentially to keep it simple
-    await exports.syncProducts(req, { json: () => {}, status: () => ({ json: () => {} }) });
-    await exports.syncCustomers(req, { json: () => {}, status: () => ({ json: () => {} }) });
-    await exports.syncOrders(req, { json: () => {}, status: () => ({ json: () => {} }) });
+    await exports.syncProducts(req, res);
+    await exports.syncCustomers(req, res);
+    await exports.syncOrders(req, res);
 
-    res.json({ message: "Products, customers, and orders synced" });
+    // last handler will send response, so no extra res.json here
   } catch (err) {
     console.error("syncAll error:", err);
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
+
+
