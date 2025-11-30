@@ -1,15 +1,17 @@
 const jwt = require("jsonwebtoken");
 
-module.exports = function (req, res, next) {
-  const token = req.headers["authorization"];
-
-  if (!token) return res.status(401).json({ message: "Access denied. No token." });
-
+module.exports = (req, res, next) => {
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.tenantId = verified.tenantId;
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "No token provided" });
+
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Store tenantId in request
+    req.tenantId = user.tenantId; // <--- IMPORTANT
+
     next();
   } catch (err) {
-    return res.status(400).json({ message: "Invalid token." });
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
