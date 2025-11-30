@@ -13,20 +13,14 @@ app.use(
 
 app.use(express.json());
 
-// Routes
-const authRoutes = require("./routes/auth.routes");
+// Only the required routes
 const shopifyRoutes = require("./routes/shopify.routes");
 const customerRoutes = require("./routes/customer.routes");
 const orderRoutes = require("./routes/order.routes");
 
-
-
-
-app.use("/auth", authRoutes);
 app.use("/shopify", shopifyRoutes);
 app.use("/customers", customerRoutes);
 app.use("/orders", orderRoutes);
-
 
 app.get("/", (req, res) => {
   res.send("Xeno Backend Running");
