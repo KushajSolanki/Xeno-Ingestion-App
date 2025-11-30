@@ -145,60 +145,89 @@ exports.syncCustomers = async (req, res) => {
 };
 
 // SYNC ORDERS
+// POST /shopify/sync/orders
 exports.syncOrders = async (req, res) => {
   try {
-    const tenant = await prisma.tenant.findFirst();
-    if (!tenant) return res.status(400).json({ error: "No tenant registered" });
+    const tenantId = req.tenantId;
 
-    const shopifyOrders = await fetchFromShopify(`/admin/api/2024-01/orders.json`, tenant.apiToken, tenant.shopUrl);
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    console.log(`Fetched orders from Shopify: ${shopifyOrders.orders.length}`);
+    // Correct function here
+    const shopifyOrders = await fetchShopifyOrders(
+      tenant.shopUrl,
+      tenant.apiToken
+    );
 
-    for (const order of shopifyOrders.orders) {
+    console.log("Fetched orders from Shopify:", shopifyOrders.length);
 
-      const savedOrder = await prisma.order.upsert({
-        where: { shopifyId: order.id.toString() },
-        update: {},
+    for (const o of shopifyOrders) {
+      let customerId = null;
+
+      if (o.customer) {
+        const customer = await prisma.customer.upsert({
+          where: { shopifyId: String(o.customer.id) },
+          update: {
+            tenantId,
+            email: o.customer.email,
+            firstName: o.customer.first_name,
+            lastName: o.customer.last_name,
+            phone: o.customer.phone,
+          },
+          create: {
+            tenantId,
+            shopifyId: String(o.customer.id),
+            email: o.customer.email,
+            firstName: o.customer.first_name,
+            lastName: o.customer.last_name,
+            phone: o.customer.phone,
+          },
+        });
+
+        customerId = customer.id;
+      }
+
+      const order = await prisma.order.upsert({
+        where: { shopifyId: String(o.id) },
+        update: {
+          tenantId,
+          totalPrice: parseFloat(o.total_price || "0"),
+          createdAt: new Date(o.created_at),
+          customerId,
+        },
         create: {
-          shopifyId: order.id.toString(),
-          totalPrice: parseFloat(order.total_price),
-          currency: order.currency,
-          createdAt: new Date(order.created_at),
-          tenantId: tenant.id
-        }
+          tenantId,
+          shopifyId: String(o.id),
+          totalPrice: parseFloat(o.total_price || "0"),
+          createdAt: new Date(o.created_at),
+          customerId,
+        },
       });
 
-      for (const item of order.line_items) {
+      await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
 
-        // 🔍 Find matching product using shopifyId
-        const existingProduct = await prisma.product.findFirst({
-          where: { shopifyId: item.product_id.toString() }
+      for (const item of o.line_items || []) {
+        const product = await prisma.product.findUnique({
+          where: { shopifyId: String(item.product_id) },
         });
 
-        if (!existingProduct) {
-          console.warn(`⚠️ Product not found for shopifyId ${item.product_id}, skipping...`);
-          continue;
-        }
-
-        // 🛠️ Create OrderItem now with correct `productId`
         await prisma.orderItem.create({
           data: {
-            orderId: savedOrder.id,
-            productId: existingProduct.id, // ✔ Correct integer ID
+            orderId: order.id,
             title: item.title,
             quantity: item.quantity,
-            price: parseFloat(item.price),
-          }
+            price: parseFloat(item.price || "0"),
+            productId: product ? product.id : null,
+          },
         });
-
       }
     }
 
-    res.json({ message: "Orders synced successfully" });
+    res.json({ message: "Orders synced", count: shopifyOrders.length });
 
   } catch (err) {
     console.error("syncOrders error:", err);
-    res.status(500).json({ error: "Failed to sync orders" });
+    res.status(500).json({ message: "Failed to sync orders" });
   }
 };
 
@@ -214,4 +243,5 @@ exports.syncAll = async (req, res) => {
     res.status(500).json({ message: "Failed to sync all" });
   }
 };
+
 
