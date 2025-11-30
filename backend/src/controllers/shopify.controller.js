@@ -237,5 +237,40 @@ exports.getOrdersTrend = async (req, res) => {
 };
 
 
+exports.getTopCustomers = async (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+
+    // Group orders by customerId and sum their spend
+    const grouped = await prisma.order.groupBy({
+      by: ["customerId"],
+      where: { tenantId, customerId: { not: null } },
+      _sum: { totalPrice: true },
+      orderBy: { _sum: { totalPrice: "desc" } },
+      take: 5
+    });
+
+    const result = [];
+
+    for (const g of grouped) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: g.customerId }
+      });
+
+      result.push({
+        name: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
+        email: customer.email,
+        spend: g._sum.totalPrice
+      });
+    }
+
+    res.json(result);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 
 
