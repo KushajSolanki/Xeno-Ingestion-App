@@ -86,8 +86,18 @@ exports.syncOrders = async (req, res) => {
     for (const o of orders) {
       const order = await prisma.order.upsert({
         where: { shopifyId: String(o.id) },
-        update: { totalPrice: parseFloat(o.total_price || "0"), tenantId: req.tenantId },
-        create: { shopifyId: String(o.id), totalPrice: parseFloat(o.total_price || "0"), tenantId: req.tenantId },
+        update: {
+          totalPrice: parseFloat(o.total_price || "0"),
+          tenantId,
+          createdAt: new Date(o.created_at), // add this if you want to update date
+        },
+        create: {
+          tenantId,
+          shopifyId: String(o.id),
+          totalPrice: parseFloat(o.total_price || "0"),
+          createdAt: new Date(o.created_at), // MUST be here
+          customerId,
+        },
       });
 
       await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
@@ -133,4 +143,5 @@ exports.getSummary = (req, res) => {
     message: "Summary endpoint coming soon 🚀",
   });
 };
+
 
