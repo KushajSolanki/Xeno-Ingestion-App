@@ -8,44 +8,44 @@ datasource db {
 }
 
 model Tenant {
-  id          Int      @id @default(autoincrement())
-  name        String
-  email       String   @unique
-  password    String
-  shopUrl     String
-  apiToken    String
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  shopUrl   String
+  apiToken  String
+  createdAt DateTime @default(now())
 
-  customers   Customer[]
-  products    Product[]
-  orders      Order[]
-  events      Event[]   
+  customers Customer[]
+  products  Product[]
+  orders    Order[]
+  events    Event[]
 }
 
 model Customer {
-  id          Int      @id @default(autoincrement())
-  tenantId    Int
-  shopifyId   String   @unique
-  email       String?
-  firstName   String?
-  lastName    String?
-  phone       String?
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  shopifyId String   @unique
+  email     String?
+  firstName String?
+  lastName  String?
+  phone     String?
+  createdAt DateTime @default(now())
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  orders      Order[]
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  orders    Order[]
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  tenantId    Int
-  shopifyId   String   @unique
-  title       String
-  price       Float
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  shopifyId String   @unique
+  title     String
+  price     Float
+  createdAt DateTime @default(now())
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  orderItems  OrderItem[]
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  orderItems OrderItem[]
 }
 
 model Order {
@@ -61,9 +61,6 @@ model Order {
   customer   Customer? @relation(fields: [customerId], references: [id])
 }
 
-
-
-
 model OrderItem {
   id        Int     @id @default(autoincrement())
   orderId   Int
@@ -76,7 +73,6 @@ model OrderItem {
   product   Product? @relation(fields: [productId], references: [id])
 }
 
-
 model Event {
   id        Int      @id @default(autoincrement())
   tenantId  Int
@@ -86,4 +82,3 @@ model Event {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 }
-
