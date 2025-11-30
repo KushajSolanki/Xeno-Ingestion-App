@@ -94,6 +94,57 @@ app.get("/reset-migrations-table", async (req, res) => {
   }
 });
 
+app.get("/fix-migration-table-v2", async (req, res) => {
+  try {
+    // Drop old table
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "_prisma_migrations";`);
+
+    // Create Prisma 5 compatible migration table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE "_prisma_migrations" (
+        id TEXT PRIMARY KEY,
+        checksum TEXT NOT NULL,
+        migration_name TEXT NOT NULL,
+        description TEXT,
+        logs TEXT,
+        rolled_back_at TIMESTAMP,
+        finished_at TIMESTAMP,
+        applied_at TIMESTAMP,
+        applied_steps_count INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+
+    // Insert baseline as applied
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "_prisma_migrations" (
+        id,
+        checksum,
+        migration_name,
+        description,
+        logs,
+        rolled_back_at,
+        finished_at,
+        applied_at,
+        applied_steps_count
+      ) VALUES (
+        gen_random_uuid(),
+        '',
+        '000_init_baseline',
+        '',
+        '',
+        NULL,
+        NOW(),
+        NOW(),
+        1
+      );
+    `);
+
+    res.send("Prisma migrations table upgraded and baseline applied.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fixing migration table v2.");
+  }
+});
 
 
 
