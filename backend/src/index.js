@@ -167,6 +167,16 @@ app.get("/create-order-tables", async (req, res) => {
   }
 });
 
+app.get("/drop-orders", async (req, res) => {
+  try {
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "OrderItem" CASCADE;`);
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Order" CASCADE;`);
+    res.send("Dropped Order + OrderItem tables");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error dropping tables");
+  }
+});
 
 
 // Route Imports
