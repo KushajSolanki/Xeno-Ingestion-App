@@ -1,27 +1,18 @@
 const express = require("express");
-const {
-  getProducts,
-  getOrders,
-  getCustomers,
-  getSummary,
-  syncProducts,
-  syncCustomers,
-  syncOrders,
-  syncAll,
-} = require("../controllers/shopify.controller");
-
 const router = express.Router();
+const shopifyController = require("../controllers/shopify.controller");
+const auth = require("../middleware/auth");
 
-// live fetch from Shopify
-router.get("/products", getProducts);
-router.get("/orders", getOrders);
-router.get("/customers", getCustomers);
-router.get("/summary", getSummary);
+// Protected routes
+router.get("/products", auth, shopifyController.getProducts);
+router.get("/customers", auth, shopifyController.getCustomers);
+router.get("/orders", auth, shopifyController.getOrders);
+router.get("/summary", auth, shopifyController.getSummary);
 
-// sync into DB
-router.post("/sync/products", syncProducts);
-router.post("/sync/customers", syncCustomers);
-router.post("/sync/orders", syncOrders);
-router.post("/sync/all", syncAll);
+// Sync routes
+router.post("/sync/products", auth, shopifyController.syncProducts);
+router.post("/sync/customers", auth, shopifyController.syncCustomers);
+router.post("/sync/orders", auth, shopifyController.syncOrders);
+router.post("/sync/all", auth, shopifyController.syncAll);
 
 module.exports = router;
