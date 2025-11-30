@@ -52,6 +52,50 @@ app.get("/fix-migration", async (req, res) => {
 
 
 
+app.get("/reset-migrations-table", async (req, res) => {
+  try {
+    // Drop broken table
+    await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "_prisma_migrations";`);
+
+    // Recreate correct Prisma migrations table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE "_prisma_migrations" (
+        id TEXT PRIMARY KEY,
+        checksum TEXT NOT NULL,
+        finished_at TIMESTAMP,
+        migration_name TEXT NOT NULL,
+        logs TEXT,
+        rolled_back_at TIMESTAMP,
+        started_at TIMESTAMP,
+        applied_at TIMESTAMP
+      );
+    `);
+
+    // Insert baseline as applied
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "_prisma_migrations" (
+        id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_at
+      ) VALUES (
+        gen_random_uuid(),
+        '',
+        NOW(),
+        '000_init_baseline',
+        '',
+        NULL,
+        NOW(),
+        NOW()
+      );
+    `);
+
+    res.send("Prisma migrations table fully reset and baseline applied.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error resetting migrations table.");
+  }
+});
+
+
+
 
 // Route Imports
 const authRoutes = require("./routes/auth.routes");
