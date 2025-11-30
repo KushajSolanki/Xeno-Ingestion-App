@@ -55,15 +55,13 @@ model Order {
   totalPrice Float
   createdAt  DateTime
 
-  // ADD THESE BACK TEMPORARILY
-  totalAmount Float?
-  date        DateTime?
-
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
   items      OrderItem[]
   customerId Int?
   customer   Customer? @relation(fields: [customerId], references: [id])
 }
+
+
 
 
 model OrderItem {
