@@ -14,6 +14,23 @@ app.use(
 
 app.use(express.json());
 
+
+app.get("/fix-order-table", async (req, res) => {
+  try {
+    await prisma.$executeRawUnsafe(`
+      DROP TABLE IF EXISTS "OrderItem";
+      DROP TABLE IF EXISTS "Order";
+    `);
+
+    res.send("Order and OrderItem tables dropped.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error");
+  }
+});
+
+
+
 // Route Imports
 const authRoutes = require("./routes/auth.routes");
 const shopifyRoutes = require("./routes/shopify.routes");
