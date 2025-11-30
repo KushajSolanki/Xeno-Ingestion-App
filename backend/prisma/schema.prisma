@@ -3,18 +3,18 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model Tenant {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
   shopUrl   String
   apiToken  String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   customers Customer[]
   products  Product[]
@@ -23,62 +23,62 @@ model Tenant {
 }
 
 model Customer {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   tenantId  Int
-  shopifyId String   @unique
+  shopifyId String    @unique
   email     String?
   firstName String?
   lastName  String?
   phone     String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
   orders    Order[]
 }
 
 model Product {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   tenantId  Int
-  shopifyId String   @unique
+  shopifyId String    @unique
   title     String
   price     Float
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
   orderItems OrderItem[]
 }
 
 model Order {
-  id         Int      @id @default(autoincrement())
+  id         Int        @id @default(autoincrement())
   tenantId   Int
-  shopifyId  String   @unique
+  shopifyId  String     @unique
   totalPrice Float
   createdAt  DateTime
 
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
   items      OrderItem[]
   customerId Int?
-  customer   Customer? @relation(fields: [customerId], references: [id])
+  customer   Customer?  @relation(fields: [customerId], references: [id])
 }
 
 model OrderItem {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   orderId   Int
   productId Int?
   title     String?
   quantity  Int
   price     Float
 
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product? @relation(fields: [productId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+  product   Product?  @relation(fields: [productId], references: [id])
 }
 
 model Event {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   tenantId  Int
   type      String
   payload   Json
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
 }
