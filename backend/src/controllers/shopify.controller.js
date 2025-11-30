@@ -2,9 +2,13 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 // GET /shopify/summary
-exports.summary = async (req, res) => {
+exports.getSummary = async (req, res) => {
   try {
-    const tenantId = req.tenantId; // from auth middleware
+    const tenantId = req.tenantId; // must come from auth middleware
+
+    if (!tenantId) {
+      return res.status(400).json({ message: "tenantId missing in request" });
+    }
 
     const products = await prisma.product.count({ where: { tenantId } });
     const orders = await prisma.order.count({ where: { tenantId } });
