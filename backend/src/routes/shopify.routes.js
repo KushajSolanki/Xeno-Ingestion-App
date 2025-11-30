@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const shopifyController = require("../controllers/shopify.controller");
-const auth = require("../middleware/auth");
+const auth = require("../middleware/auth.middleware");
 
 // Protected routes
 router.get("/products", auth, shopifyController.getProducts);
@@ -16,3 +16,4 @@ router.post("/sync/orders", auth, shopifyController.syncOrders);
 router.post("/sync/all", auth, shopifyController.syncAll);
 
 module.exports = router;
+
