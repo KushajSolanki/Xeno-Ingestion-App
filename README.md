@@ -2,6 +2,9 @@
 
 A multi-tenant Shopify ingestion system using **Node.js (Render)**, **PostgreSQL (Railway)**, **Prisma ORM**, and **React (Vite)**.
 
+### 👉 Try the Xeno App  
+Sign up here: **[Xeno Signup](https://xeno-app-data-integration.netlify.app/signup)**  
+
 ![Xeno_Signup](./xenopic.png)
 
 ![Xeno App](./xenopic2.png)
